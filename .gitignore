@@ -1,0 +1,33 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Node
+node_modules/
+dist/
+build/
+*.log
+
+# Frontend tools
+.vite/
+.cache/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env*
+
+# Data and models
+/data/
+!data/README.md
+models/
+artifacts/

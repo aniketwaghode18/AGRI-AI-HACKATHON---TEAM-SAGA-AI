@@ -1,0 +1,11 @@
+{
+  "name": "agrivision-root",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "npm --prefix src/frontend run dev",
+    "build": "npm --prefix src/frontend run build",
+    "preview": "npm --prefix src/frontend run preview",
+    "lint": "npm --prefix src/frontend run lint || echo 'no lint'"
+  }
+}
