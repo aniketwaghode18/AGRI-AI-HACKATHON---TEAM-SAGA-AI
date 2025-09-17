@@ -1,84 +1,26 @@
-<<<<<<< HEAD
-# AgriVision: Fast CV starter for crop health inference
+AgriVision: minimal Flask + React scaffold for rapid ML prototyping (mockable, hackathon-ready).
 
-## Local development
+Local development (Windows cmd and Bash shown):
+- Create and activate venv:
+  - Windows: python -m venv .venv && .venv\Scripts\activate
+  - Bash: python -m venv .venv && source .venv/bin/activate
+- Install Python deps (global delegates to server): pip install -r requirements.txt
+- Run Flask API (dev): set FLASK_ENV=development&& set MOCK=1&& python src/server/app.py
+  - Bash: FLASK_ENV=development MOCK=1 python src/server/app.py
+  - API at http://127.0.0.1:5000
+- Run frontend dev server:
+  - cd src/frontend
+  - npm install
+  - npm run dev
+  - App at http://127.0.0.1:5173
+- Example prediction (curl): curl -F "file=@data/sample.jpg" http://127.0.0.1:5000/predict
+- Run tests (none yet; placeholders):
+  - Python: pytest -q
+  - Frontend: cd src/frontend && npm test
 
-### Prereqs
-- Python 3.11+
-- Node.js 18+
-- Git
-
-### Setup (Windows/macOS/Linux)
-```bash
-# 1) Create virtualenv
-python -m venv .venv
-
-# 2) Activate venv
-# Windows (cmd)
-.venv\\Scripts\\activate
-# Windows (PowerShell)
-# .venv\\Scripts\\Activate.ps1
-# macOS/Linux (bash/zsh)
-# source .venv/bin/activate
-
-# 3) Install Python deps
-pip install -U pip
-pip install -r requirements.txt
-
-# 4) Install server deps (optional if using top-level)
-pip install -r src/server/requirements.txt
-
-# 5) Install frontend deps
-cd src/frontend
-npm install
-cd ../..
-```
-
-### Run services
-```bash
-# Terminal A - Flask API
-set FLASK_APP=src/server/app.py & set FLASK_ENV=development & flask run --host=0.0.0.0 --port=5000 | cat
-# macOS/Linux:
-# FLASK_APP=src/server/app.py FLASK_ENV=development flask run --host=0.0.0.0 --port=5000
-
-# Terminal B - Frontend (Vite dev server)
-cd src/frontend
-npm run dev
-```
-
-### Example API usage
-```bash
-# Health check
-curl http://localhost:5000/health
-
-# Predict with an image file
-curl -X POST http://localhost:5000/api/predict -F "image=@path/to/sample.jpg"
-
-# Predict with JSON (e.g., URL)
-curl -X POST http://localhost:5000/api/predict -H "Content-Type: application/json" -d '{"url": "https://example.com/image.jpg"}'
-```
-
-### Tests
-```bash
-# (Server) Using pytest
-pytest -q
-```
-
-### Docker (server only)
-```bash
-# Build
-docker build -t agrivision-server -f src/server/Dockerfile .
-# Run
-docker run -it --rm -p 5000:5000 agrivision-server
-```
-
-### Project layout
-- src/server: Flask API
-- src/ml: Training, preprocessing, export, and inference code
-- src/frontend: React (Vite) app skeleton
-- data: Datasets and artifacts (gitignored)
-```
-=======
-# Agri-Ai-Hackathon---Team-SAGA
-progress
->>>>>>> 8e37a8e6246f17c7205b8837ad6148645ef10f9d
+Repo layout:
+- src/server: Flask app (+ Dockerfile)
+- src/ml: ML stubs (inference/export/train/preprocess)
+- src/frontend: React Vite skeleton
+- data: datasets go here
+- .github/workflows/ci.yml: CI skeleton

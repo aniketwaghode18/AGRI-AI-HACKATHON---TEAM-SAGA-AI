@@ -1,33 +1,33 @@
 # Python
-.venv/
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
-.pytest_cache/
-.mypy_cache/
-.coverage
-htmlcov/
+*.DS_Store
+.venv/
+.env
+.env.*
+dist/
+build/
 
 # Node
 node_modules/
-dist/
-build/
+npm-debug.log*
+yarn.lock
+pnpm-lock.yaml
+.vite/
+coverage/
 *.log
 
-# Frontend tools
-.vite/
-.cache/
+# IDE
+.vscode/
+.idea/
 
-# OS
-.DS_Store
-Thumbs.db
+# Docker
+*.local
 
-# Env
-.env*
-
-# Data and models
-/data/
+# Data/Models
+data/**
 !data/README.md
 models/
-artifacts/
+checkpoints/

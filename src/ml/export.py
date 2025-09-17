@@ -1,7 +1,10 @@
-def export_model(output_path: str = "models/export.onnx") -> None:
-    """Export the trained model to ONNX (stub)."""
-    print(f"[export] Exporting model to {output_path} (stub)")
+from typing import Any
 
-
-if __name__ == "__main__":
-    export_model()
+def export_model(train_artifact_path: str, out_path: str) -> None:
+	"""
+	Stub: convert a trained model to a deployable artifact (e.g., ONNX).
+	"""
+	# Implement real export here
+	with open(out_path, "w", encoding="utf-8") as f:
+		f.write("DUMMY_MODEL")
+	print(f"Exported dummy model to {out_path}")

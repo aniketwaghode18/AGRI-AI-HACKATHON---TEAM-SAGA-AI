@@ -1,117 +1,121 @@
 import os
 import uuid
-import tempfile
-from typing import Tuple, Optional
+from pathlib import Path
+from typing import Tuple
 
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, url_for
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
-from PIL import Image, ImageDraw
 
-from src.server.config import AppConfig
+from config import AppConfig
 from src.ml.inference import detect_image
 
-# flask file
-OVERLAYS_SUBDIR = os.path.join("static", "overlays")
+try:
+	from PIL import Image, ImageDraw
+except Exception:
+	Image = None
+	ImageDraw = None
 
 
-def ensure_overlays_dir() -> str:
-    overlays_dir = os.path.abspath(OVERLAYS_SUBDIR)
-    os.makedirs(overlays_dir, exist_ok=True)
-    return overlays_dir
+def _allowed_file(filename: str, allowed: set) -> bool:
+	return "." in filename and filename.rsplit(".", 1)[1].lower() in allowed
 
 
 def create_app() -> Flask:
-    app = Flask(__name__, static_folder="static")
-    CORS(app)
-    app.config.from_object(AppConfig)
+	config = AppConfig()
 
-    ensure_overlays_dir()
+	app = Flask(
+		__name__,
+		static_folder="static",
+		static_url_path="/static",
+	)
+	CORS(app)
 
-    @app.get("/health")
-    def health():
-        return jsonify({"status": "ok"})
+	# Directories
+	overlays_dir = Path(app.static_folder) / "overlays"
+	overlays_dir.mkdir(parents=True, exist_ok=True)
+	tmp_dir = Path(getattr(config, "UPLOAD_DIR", "tmp"))
+	tmp_dir.mkdir(parents=True, exist_ok=True)
 
-    @app.post("/analyze")
-    def analyze():
-        try:
-            if "image" not in request.files:
-                return jsonify({"ok": False, "error": "Missing 'image' file"}), 400
+	@app.get("/health")
+	def health() -> Tuple[str, int]:
+		return jsonify({"status": "ok"}), 200
 
-            file = request.files["image"]
-            filename = secure_filename(file.filename or "upload.png")
+	@app.post("/analyze")
+	def analyze() -> Tuple[str, int]:
+		# Size pre-check using Content-Length if provided
+		content_length = request.content_length or 0
+		if content_length and content_length > config.MAX_IMAGE_SIZE:
+			return jsonify({"error": "uploaded file too large"}), 413
 
-            # Save to temp file
-            suffix = os.path.splitext(filename)[1].lower() or ".png"
-            with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-                temp_path = tmp.name
-                file.save(temp_path)
+		if "image" not in request.files:
+			return jsonify({"error": "missing multipart field 'image'"}), 400
+		file = request.files["image"]
+		if not file or file.filename == "":
+			return jsonify({"error": "empty filename"}), 400
 
-            try:
-                if AppConfig.MOCK_MODE:
-                    # Create deterministic mock overlay
-                    image = Image.open(temp_path).convert("RGBA")
-                    overlay = Image.new("RGBA", image.size, (0, 0, 0, 0))
-                    draw = ImageDraw.Draw(overlay)
-                    w, h = image.size
-                    rect = [int(w * 0.1), int(h * 0.1), int(w * 0.9), int(h * 0.9)]
-                    draw.rectangle(rect, outline=(255, 0, 0, 200), width=max(2, min(w, h) // 100))
+		filename = secure_filename(file.filename)
+		if not _allowed_file(filename, set(config.ALLOWED_EXTENSIONS)):
+			return jsonify({"error": "unsupported file type"}), 415
 
-                    # Save overlay
-                    overlays_dir = ensure_overlays_dir()
-                    overlay_id = f"{uuid.uuid4()}.png"
-                    overlay_path = os.path.join(overlays_dir, overlay_id)
-                    overlay.save(overlay_path, format="PNG")
+		# Save to temporary path
+		tmp_path = tmp_dir / f"upload_{uuid.uuid4().hex}_{filename}"
+		file.save(tmp_path)
 
-                    resp = {
-                        "ok": True,
-                        "mode": "mock",
-                        "prediction": {
-                            "label": "healthy",
-                            "confidence": 0.87,
-                            "brightness": 0.62,
-                        },
-                        "overlay_url": f"/static/overlays/{overlay_id}",
-                    }
-                else:
-                    result = detect_image(temp_path)
-                    # result may include an overlay image; if so, save it
-                    overlay_url: Optional[str] = None
-                    overlay_img = result.get("overlay_image") if isinstance(result, dict) else None
-                    if overlay_img is not None:
-                        overlays_dir = ensure_overlays_dir()
-                        overlay_id = f"{uuid.uuid4()}.png"
-                        overlay_path = os.path.join(overlays_dir, overlay_id)
-                        overlay_img.save(overlay_path, format="PNG")
-                        overlay_url = f"/static/overlays/{overlay_id}"
+		# Post-save size enforcement for clients not setting Content-Length
+		try:
+			if tmp_path.stat().st_size > config.MAX_IMAGE_SIZE:
+				try:
+					tmp_path.unlink(missing_ok=True)
+				except Exception:
+					pass
+				return jsonify({"error": "uploaded file too large"}), 413
+		except Exception:
+			pass
 
-                    resp = {
-                        "ok": True,
-                        "mode": "real",
-                        "prediction": result.get("prediction", result),
-                    }
-                    if overlay_url:
-                        resp["overlay_url"] = overlay_url
+		# Prepare overlay path
+		overlay_name = f"{uuid.uuid4().hex}.png"
+		overlay_path = overlays_dir / overlay_name
 
-                return jsonify(resp)
-            finally:
-                try:
-                    os.remove(temp_path)
-                except OSError:
-                    pass
-        except Exception as e:
-            return jsonify({"ok": False, "error": str(e)}), 500
+		try:
+			if config.MOCK_MODE:
+				if Image is None:
+					return jsonify({"error": "Pillow not installed for mock overlay"}), 500
+				# Deterministic mock response and overlay
+				im = Image.open(tmp_path).convert("RGBA")
+				draw = ImageDraw.Draw(im, "RGBA")
+				w, h = im.size
+				box = [int(0.1 * w), int(0.1 * h), int(0.9 * w), int(0.9 * h)]
+				draw.rectangle(box, outline=(0, 200, 0, 255), width=4)
+				draw.rectangle(box, fill=(0, 200, 0, 40))
+				im.save(overlay_path, format="PNG")
 
-    # Static overlays served from /static/overlays/<file> automatically by Flask static
-    # Adding explicit route for clarity (optional)
-    @app.get("/static/overlays/<path:filename>")
-    def get_overlay(filename: str):
-        return send_from_directory(ensure_overlays_dir(), filename)
+				result = {
+					"detections": [
+						{"label": "healthy_crop", "confidence": 0.97, "bbox": box}
+					],
+					"width": w,
+					"height": h,
+				}
+			else:
+				result = detect_image(str(tmp_path), str(overlay_path))
 
-    return app
+			# Build URL for overlay
+			overlay_url = url_for("static", filename=f"overlays/{overlay_name}", _external=False)
+			result["overlay_url"] = overlay_url
+			return jsonify({"ok": True, "result": result}), 200
+		except Exception as e:
+			return jsonify({"ok": False, "error": str(e)}), 500
+		finally:
+			try:
+				tmp_path.unlink(missing_ok=True)
+			except Exception:
+				pass
 
+	return app
 
-app = create_app()
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=AppConfig.DEBUG)
+	# Respect FLASK_ENV and MOCK_MODE via environment variables
+	app = create_app()
+	app.run(host="0.0.0.0", port=int(os.getenv("PORT", "5000")), debug=os.getenv("FLASK_ENV") == "development")

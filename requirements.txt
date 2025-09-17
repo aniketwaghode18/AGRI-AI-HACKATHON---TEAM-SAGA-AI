@@ -1,3 +1,1 @@
 -r src/server/requirements.txt
-numpy>=1.26
-Pillow>=10.0

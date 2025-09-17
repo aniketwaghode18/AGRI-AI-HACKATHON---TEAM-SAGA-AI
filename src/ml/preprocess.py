@@ -1,7 +1,7 @@
-def preprocess(input_dir: str = "data", output_dir: str = "data/processed") -> None:
-    """Preprocess raw data (stub)."""
-    print(f"[preprocess] Preprocessing from {input_dir} -> {output_dir} (stub)")
+from typing import Any
 
-
-if __name__ == "__main__":
-    preprocess()
+def preprocess(raw_input: Any) -> Any:
+	"""
+	Stub: preprocess raw data into model input format.
+	"""
+	return raw_input

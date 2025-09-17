@@ -1,33 +1,25 @@
-const BASE = (import.meta && import.meta.env && import.meta.env.VITE_API_BASE) || 'http://localhost:5000';
+const API_BASE = import.meta?.env?.VITE_API_BASE || 'http://127.0.0.1:5000';
 
-async function request(path, { method = 'GET', body, isForm = false } = {}) {
-  const headers = {};
-  if (!isForm) headers['Content-Type'] = 'application/json';
-
-  const res = await fetch(`${BASE}${path}`, {
-    method,
-    headers,
-    body: isForm ? body : body ? JSON.stringify(body) : undefined,
-  });
-
-  const text = await res.text();
-  let json;
-  try {
-    json = text ? JSON.parse(text) : {};
-  } catch (e) {
-    throw new Error(`Invalid JSON response: ${text?.slice(0, 200)}`);
-  }
-
-  if (!res.ok || json?.ok === false) {
-    const msg = json?.error || res.statusText || 'Request failed';
-    throw new Error(msg);
-  }
-
-  return json;
+async function http(method, path, body, headers = {}) {
+	const res = await fetch(`${API_BASE}${path}`, {
+		method,
+		body,
+		headers
+	});
+	if (!res.ok) {
+		const txt = await res.text();
+		throw new Error(`HTTP ${res.status}: ${txt}`);
+	}
+	const ct = res.headers.get('content-type') || '';
+	if (ct.includes('application/json')) return res.json();
+	return res.text();
 }
 
 export const api = {
-  base: BASE,
-  get: (path) => request(path),
-  post: (path, body, isForm = false) => request(path, { method: 'POST', body, isForm }),
+	health: () => http('GET', '/health'),
+	predict: async (file) => {
+		const form = new FormData();
+		form.append('file', file);
+		return http('POST', '/predict', form);
+	}
 };

@@ -1,7 +1,8 @@
-def train(data_dir: str = "data") -> None:
-    """Train a model on the dataset (stub)."""
-    print(f"[train] Training with data in {data_dir} (stub)")
-
+def train(data_dir: str, out_dir: str) -> None:
+	"""
+	Stub: train a model and save checkpoints.
+	"""
+	print(f"Training with data at {data_dir}, writing outputs to {out_dir}")
 
 if __name__ == "__main__":
-    train()
+	train("data/", "checkpoints/")

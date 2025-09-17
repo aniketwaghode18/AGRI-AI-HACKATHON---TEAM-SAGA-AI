@@ -1,17 +1,16 @@
+# syntax=docker/dockerfile:1
 FROM python:3.11-slim
 
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=1
-
 WORKDIR /app
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 
 COPY src/server/requirements.txt /app/src/server/requirements.txt
-RUN pip install --upgrade pip && pip install -r /app/src/server/requirements.txt
+RUN pip install --no-cache-dir -r /app/src/server/requirements.txt
 
 COPY . /app
 
+ENV FLASK_ENV=production
+ENV MOCK=1
 EXPOSE 5000
-
-ENV FLASK_APP=src/server/app.py
-CMD ["flask", "run", "--host=0.0.0.0", "--port=5000"]
+CMD ["python", "src/server/app.py"]

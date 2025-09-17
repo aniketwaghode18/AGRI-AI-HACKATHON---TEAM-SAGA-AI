@@ -1,52 +1,79 @@
 import os
 from typing import Set
 
-
 class AppConfig:
-    """
-    Server configuration.
+	"""
+	Configuration for the Flask server.
 
-    Toggle mock mode using environment variables:
-      - Windows (cmd):
-          set MOCK_MODE=1
-      - PowerShell:
-          $env:MOCK_MODE = "1"
-      - macOS/Linux (bash):
-          export MOCK_MODE=1
+	Toggle mock mode via environment variables (any of the following):
+	- Windows cmd:  set MOCK_MODE=1  (or: set MOCK=1)
+	- Bash (macOS/Linux):  export MOCK_MODE=1  (or: MOCK=1)
+	- Disable mock mode by setting to 0.
 
-    Set other options similarly, e.g.:
-      export MODEL_PATH="models/latest.onnx"
-      export OVERLAY_DIR="overlays"
+	Example mock response structure (returned when MOCK_MODE=1):
+	{
+	  "ok": true,
+	  "result": {
+	    "label": "healthy_crop",
+	    "confidence": 0.97,
+	    "notes": "Mocked response. Set MOCK_MODE=0 to use real model.",
+	    "file": "sample.jpg"
+	  }
+	}
+	"""
 
-    Example mock prediction response (when MOCK_MODE=1):
-      {
-        "ok": true,
-        "prediction": {
-          "label": "healthy",
-          "confidence": 0.87,
-          "brightness": 0.62
-        }
-      }
-    """
+	def __init__(self):
+		# Core settings
+		self.MOCK_MODE: bool = self._read_bool_env(["MOCK_MODE", "MOCK"], default=True)
+		self.MODEL_PATH: str = os.getenv("MODEL_PATH", "models/model.onnx")
+		self.OVERLAY_DIR: str = os.getenv("OVERLAY_DIR", "tmp")
 
-    # General
-    DEBUG: bool = os.environ.get("FLASK_DEBUG", "0") == "1"
+		# Upload constraints
+		self.ALLOWED_EXTENSIONS: Set[str] = self._read_exts_env(
+			"ALLOWED_EXTENSIONS",
+			default={"jpg", "jpeg", "png", "gif", "bmp", "tif", "tiff"},
+		)
+		# Bytes. You can specify MAX_IMAGE_SIZE (bytes) or MAX_IMAGE_SIZE_MB (megabytes).
+		self.MAX_IMAGE_SIZE: int = self._read_size_env()
 
-    # Mocking and inference
-    MOCK_MODE: bool = os.environ.get("MOCK_MODE", "0") == "1"
-    MODEL_PATH: str = os.environ.get("MODEL_PATH", "models/export.onnx")
+		# Backward-compatibility keys used elsewhere in the codebase
+		# (Prefer the new names above in new code)
+		self.MOCK = int(self.MOCK_MODE)  # legacy integer form
+		self.UPLOAD_DIR = self.OVERLAY_DIR
 
-    # Assets and uploads
-    OVERLAY_DIR: str = os.environ.get("OVERLAY_DIR", "overlays")
-    ALLOWED_EXTENSIONS: Set[str] = set(
-        (os.environ.get("ALLOWED_EXTENSIONS", "jpg,jpeg,png,bmp,webp").lower()).split(",")
-    )
+	def __getitem__(self, key):
+		return getattr(self, key, None)
 
-    # Maximum incoming image payload size in bytes (default 10 MB)
-    MAX_IMAGE_SIZE: int = int(os.environ.get("MAX_IMAGE_SIZE", str(10 * 1024 * 1024)))
+	def get(self, key, default=None):
+		return getattr(self, key, default)
 
-    # Flask builtin limit for request body size
-    MAX_CONTENT_LENGTH: int = MAX_IMAGE_SIZE
+	@staticmethod
+	def _read_bool_env(names, default: bool) -> bool:
+		for name in names:
+			val = os.getenv(name)
+			if val is not None:
+				val = val.strip().lower()
+				if val in {"1", "true", "yes", "y", "on"}:
+					return True
+				if val in {"0", "false", "no", "n", "off"}:
+					return False
+		return default
 
-    # CORS
-    CORS_ORIGINS: str = os.environ.get("CORS_ORIGINS", "*")
+	@staticmethod
+	def _read_exts_env(name: str, default: Set[str]) -> Set[str]:
+		val = os.getenv(name)
+		if not val:
+			return default
+		return {p.strip().lstrip(".").lower() for p in val.split(",") if p.strip()}
+
+	@staticmethod
+	def _read_size_env() -> int:
+		# Prefer explicit bytes; else allow MB convenience var
+		val_b = os.getenv("MAX_IMAGE_SIZE")
+		val_mb = os.getenv("MAX_IMAGE_SIZE_MB")
+		if val_b and val_b.isdigit():
+			return int(val_b)
+		if val_mb and val_mb.isdigit():
+			return int(val_mb) * 1024 * 1024
+		# Default: 10 MB
+		return 10 * 1024 * 1024
