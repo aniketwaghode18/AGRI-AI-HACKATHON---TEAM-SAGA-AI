@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # AgriVision: Fast CV starter for crop health inference
 
 ## Local development
@@ -77,3 +78,7 @@ docker run -it --rm -p 5000:5000 agrivision-server
 - src/frontend: React (Vite) app skeleton
 - data: Datasets and artifacts (gitignored)
 ```
+=======
+# Agri-Ai-Hackathon---Team-SAGA
+progress
+>>>>>>> 8e37a8e6246f17c7205b8837ad6148645ef10f9d
