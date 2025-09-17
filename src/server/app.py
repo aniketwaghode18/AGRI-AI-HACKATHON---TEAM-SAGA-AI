@@ -3,12 +3,30 @@ import uuid
 from pathlib import Path
 from typing import Tuple
 
-from flask import Flask, request, jsonify, url_for
+from flask import Flask, request, jsonify, url_for, send_file, Response
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 
-from config import AppConfig
-from src.ml.inference import detect_image
+# Robust imports: try package-relative first, then absolute fallbacks
+try:
+	from .config import AppConfig  # type: ignore
+except Exception:
+	try:
+		from src.server.config import AppConfig  # type: ignore
+	except Exception:
+		from config import AppConfig  # type: ignore
+
+# Inference import: prefer absolute from src.ml, fallback to relative
+try:
+	from src.ml.inference import detect_image  # type: ignore
+except Exception:
+	try:
+		from ..ml.inference import detect_image  # type: ignore
+	except Exception:
+		# Last resort: modify sys.path to include project root
+		import sys
+		sys.path.append(str(Path(__file__).resolve().parents[2]))
+		from src.ml.inference import detect_image  # type: ignore
 
 try:
 	from PIL import Image, ImageDraw
@@ -16,9 +34,31 @@ except Exception:
 	Image = None
 	ImageDraw = None
 
+# Simple in-memory cache for demo purposes
+ANALYSIS_CACHE = {}
+
 
 def _allowed_file(filename: str, allowed: set) -> bool:
 	return "." in filename and filename.rsplit(".", 1)[1].lower() in allowed
+
+
+def _format_text_report(analysis_entry: dict) -> str:
+	res = analysis_entry.get("result", analysis_entry)
+	dets = res.get("detections", [])
+	w = res.get("width")
+	h = res.get("height")
+	lines = []
+	lines.append("AgriVision Analysis Summary")
+	lines.append("===========================")
+	lines.append(f"Image size: {w}x{h}")
+	lines.append(f"Detections: {len(dets)}")
+	lines.append("")
+	for i, d in enumerate(dets, start=1):
+		label = d.get("label", "?")
+		conf = d.get("confidence", 0.0)
+		bbox = d.get("bbox", [])
+		lines.append(f"{i}. {label}  {(conf*100):.1f}%  bbox={bbox}")
+	return "\n".join(lines) + "\n"
 
 
 def create_app() -> Flask:
@@ -76,9 +116,10 @@ def create_app() -> Flask:
 		# Prepare overlay path
 		overlay_name = f"{uuid.uuid4().hex}.png"
 		overlay_path = overlays_dir / overlay_name
+		request_id = uuid.uuid4().hex
 
 		try:
-			if config.MOCK_MODE:
+			if getattr(config, "MOCK_MODE", False):
 				if Image is None:
 					return jsonify({"error": "Pillow not installed for mock overlay"}), 500
 				# Deterministic mock response and overlay
@@ -103,7 +144,14 @@ def create_app() -> Flask:
 			# Build URL for overlay
 			overlay_url = url_for("static", filename=f"overlays/{overlay_name}", _external=False)
 			result["overlay_url"] = overlay_url
-			return jsonify({"ok": True, "result": result}), 200
+
+			# Cache for report generation
+			ANALYSIS_CACHE[request_id] = {
+				"result": result,
+				"overlay_path": str(overlay_path),
+			}
+
+			return jsonify({"ok": True, "request_id": request_id, "result": result}), 200
 		except Exception as e:
 			return jsonify({"ok": False, "error": str(e)}), 500
 		finally:
@@ -111,6 +159,17 @@ def create_app() -> Flask:
 				tmp_path.unlink(missing_ok=True)
 			except Exception:
 				pass
+
+	@app.get("/report_text")
+	def report_text() -> Response:
+		request_id = request.args.get("request_id")
+		if not request_id:
+			return Response("missing request_id\n", status=400, mimetype="text/plain; charset=utf-8")
+		entry = ANALYSIS_CACHE.get(request_id)
+		if not entry:
+			return Response("unknown request_id\n", status=404, mimetype="text/plain; charset=utf-8")
+		text = _format_text_report(entry)
+		return Response(text, status=200, mimetype="text/plain; charset=utf-8")
 
 	return app
 

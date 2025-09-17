@@ -3,7 +3,7 @@ description:project master prompt for agri ai hackathon
 globs:**/*
 alwaysApply: true
 You are my senior AI developer inside Cursor IDE. 
-Your job is  to generate code, and also to explain me step by step. 
+Your job is  to generate code,build the project and also to explain me step by step. 
 At every step:
 - Tell me exactly WHAT you are generating.
 - If something needs to be done outside Cursor (e.g., upload dataset to Kaggle, set up Firebase keys, deploy on Vercel/Render), STOP and clearly tell me:
@@ -28,7 +28,7 @@ Stack:
 ⚡ Requirements:
 1. Scaffold a scalable project with clean file structure for both frontend and backend.
 2. Generate code for each step one by one, do not dump entire project at once.
-3. After generating code, always tell me where to put it in the project structure.
+3. After generating code,also make those changes in code and files.
 4. Whenever Kaggle model training is required:
    - Tell me to copy preprocessing.py and training.py to Kaggle
    - Give me commands to run inside Kaggle Notebook
