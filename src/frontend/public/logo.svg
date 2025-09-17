@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" fill="none">
+  <rect width="128" height="128" rx="24" fill="#16a34a"/>
+  <g opacity="0.9">
+    <path d="M28 84c24-10 36-40 72-40" stroke="#fef3c7" stroke-width="8" stroke-linecap="round"/>
+    <circle cx="100" cy="44" r="6" fill="#f59e0b"/>
+  </g>
+  <text x="50%" y="92" text-anchor="middle" font-family="Inter, system-ui, -apple-system, Segoe UI, Roboto" font-size="18" fill="white">AgriVision</text>
+</svg>
