@@ -11,7 +11,7 @@ from PIL import Image, ImageDraw
 from src.server.config import AppConfig
 from src.ml.inference import detect_image
 
-
+# flask file
 OVERLAYS_SUBDIR = os.path.join("static", "overlays")
 
 

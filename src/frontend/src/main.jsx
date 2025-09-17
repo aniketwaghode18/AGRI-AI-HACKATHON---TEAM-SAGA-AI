@@ -6,10 +6,10 @@ import './index.css'
 function AppShell() {
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="sticky top-0 z-10 backdrop-blur bg-white/70 border-b border-gray-100">
+      <header className="sticky top-0 z-10 backdrop-blur bg-green/1000 border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <img src="/logo.svg" alt="Logo" className="h-8 w-8 rounded" />
+            <img src="logo agri ai 1.jpg" alt="Logo" className="h-20 w-1000 rounded" />
             <span className="text-lg font-semibold text-gray-900">AgriVision</span>
           </div>
           <a className="text-sm text-gray-600 hover:text-gray-900" href="#">Docs</a>
