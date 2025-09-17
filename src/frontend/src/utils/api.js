@@ -17,9 +17,9 @@ async function http(method, path, body, headers = {}) {
 
 export const api = {
 	health: () => http('GET', '/health'),
-	predict: async (file) => {
+	analyze: async (file) => {
 		const form = new FormData();
-		form.append('file', file);
-		return http('POST', '/predict', form);
+		form.append('image', file);
+		return http('POST', '/analyze', form);
 	}
 };
