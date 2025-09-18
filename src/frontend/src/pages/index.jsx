@@ -29,18 +29,46 @@ export default function Home() {
 			ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 			const sx = canvas.width / result.result.width;
 			const sy = canvas.height / result.result.height;
-			ctx.lineWidth = 2;
-			ctx.font = '12px sans-serif';
-			result.result.detections.forEach((d) => {
+			ctx.lineWidth = 3;
+			ctx.font = 'bold 14px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica Neue, Arial';
+			
+			result.result.detections.forEach((d, idx) => {
 				const [x1, y1, x2, y2] = d.bbox;
-				ctx.strokeStyle = 'rgba(16, 185, 129, 1)'; // emerald-500
-				ctx.fillStyle = 'rgba(16, 185, 129, 0.2)';
+				const rx = x1 * sx;
+				const ry = y1 * sy;
+				const rw = (x2 - x1) * sx;
+				const rh = (y2 - y1) * sy;
+
+				// Color coding based on quality
+				let color, bgColor;
+				if (d.label === 'Healthy') {
+					color = 'rgba(34, 197, 94, 1)'; // green
+					bgColor = 'rgba(34, 197, 94, 0.2)';
+				} else if (d.label === 'Defective') {
+					color = 'rgba(239, 68, 68, 1)'; // red
+					bgColor = 'rgba(239, 68, 68, 0.2)';
+				} else {
+					color = 'rgba(59, 130, 246, 1)'; // blue
+					bgColor = 'rgba(59, 130, 246, 0.2)';
+				}
+
+				// Draw bounding box
+				ctx.strokeStyle = color;
+				ctx.fillStyle = bgColor;
 				ctx.beginPath();
-				ctx.rect(x1 * sx, y1 * sy, (x2 - x1) * sx, (y2 - y1) * sy);
+				ctx.rect(rx, ry, rw, rh);
 				ctx.stroke();
 				ctx.fill();
-				ctx.fillStyle = 'rgba(16, 185, 129, 1)';
-				ctx.fillText(`${d.label} ${(d.confidence * 100).toFixed(1)}%`, x1 * sx + 4, y1 * sy + 14);
+
+				// Draw label background
+				const text = `${d.label} ${(d.confidence * 100).toFixed(1)}%`;
+				const textWidth = ctx.measureText(text).width;
+				ctx.fillStyle = color;
+				ctx.fillRect(rx, Math.max(ry - 20, 0), textWidth + 12, 20);
+				
+				// Draw label text
+				ctx.fillStyle = 'white';
+				ctx.fillText(text, rx + 6, Math.max(ry - 6, 14));
 			});
 		};
 		img.src = previewUrl;
@@ -76,86 +104,191 @@ export default function Home() {
 	};
 
 	return (
-		<div className="min-h-screen bg-gray-50 text-gray-900">
-			<div className="max-w-5xl mx-auto px-4 py-8">
-				<header className="mb-6">
-					<h1 className="text-2xl font-semibold">AgriVision</h1>
-					<p className="text-sm text-gray-600">Upload an image to analyze crop health.</p>
-				</header>
-				<form onSubmit={onSubmit} className="bg-white rounded-lg shadow p-4 flex items-center gap-3">
-					<input
-						type="file"
-						accept="image/*"
-						onChange={onFileChange}
-						className="block w-full text-sm text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100"
-					/>
-					<button
-						type="submit"
-						disabled={!file || loading}
-						className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-emerald-600 text-white disabled:opacity-50 hover:bg-emerald-700"
-					>
-						{loading && (
-							<span className="inline-block h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-						)}
-						<span>{loading ? 'Analyzing…' : 'Analyze'}</span>
-					</button>
-				</form>
+		<div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50">
+			{/* Header with logo */}
+			<header className="bg-white/80 backdrop-blur-sm shadow-lg border-b border-green-200">
+				<div className="max-w-7xl mx-auto px-4 py-6">
+					<div className="flex items-center space-x-4">
+						<div className="w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center shadow-lg transform hover:scale-105 transition-transform duration-300">
+							<svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+								<path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+							</svg>
+						</div>
+						<div>
+							<h1 className="text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+								AgriVision
+							</h1>
+							<p className="text-green-600 font-medium">AI-Powered Seed Quality Analysis</p>
+						</div>
+					</div>
+				</div>
+			</header>
+
+			<div className="max-w-7xl mx-auto px-4 py-8">
+				{/* Hero Section */}
+				<div className="text-center mb-12">
+					<h2 className="text-4xl font-bold text-gray-800 mb-4">
+						Detect Seed Quality with AI
+					</h2>
+					<p className="text-xl text-gray-600 max-w-3xl mx-auto">
+						Upload an image of soybean seeds to instantly identify healthy, defective, moldy, or damaged seeds with advanced computer vision.
+					</p>
+				</div>
+
+				{/* Upload Section */}
+				<div className="bg-white/70 backdrop-blur-sm rounded-3xl shadow-xl p-8 mb-8 border border-green-100">
+					<form onSubmit={onSubmit} className="space-y-6">
+						<div className="text-center">
+							<label className="block text-lg font-semibold text-gray-700 mb-4">
+								Choose Seed Image
+							</label>
+							<div className="relative">
+								<input
+									type="file"
+									accept="image/*"
+									onChange={onFileChange}
+									className="block w-full text-sm text-gray-700 file:mr-4 file:py-4 file:px-6 file:rounded-2xl file:border-0 file:text-sm file:font-semibold file:bg-gradient-to-r file:from-green-500 file:to-emerald-500 file:text-white hover:file:from-green-600 hover:file:to-emerald-600 file:transition-all file:duration-300 file:shadow-lg file:hover:shadow-xl file:cursor-pointer"
+								/>
+							</div>
+						</div>
+						
+						<div className="text-center">
+							<button
+								type="submit"
+								disabled={!file || loading}
+								className="inline-flex items-center gap-3 px-8 py-4 rounded-2xl bg-gradient-to-r from-green-500 to-emerald-500 text-white font-semibold text-lg disabled:opacity-50 hover:from-green-600 hover:to-emerald-600 hover:shadow-xl transform hover:scale-105 transition-all duration-300 disabled:transform-none disabled:hover:scale-100"
+							>
+								{loading && (
+									<span className="inline-block h-6 w-6 border-3 border-white border-t-transparent rounded-full animate-spin" />
+								)}
+								<span>{loading ? 'Analyzing Seeds...' : '🔍 Analyze Seeds'}</span>
+							</button>
+						</div>
+					</form>
+				</div>
 
 				{error && (
-					<div className="mt-4 p-3 rounded-md bg-red-50 text-red-700 text-sm">{error}</div>
+					<div className="bg-red-50 border border-red-200 rounded-2xl p-6 mb-8">
+						<div className="flex items-center">
+							<svg className="w-6 h-6 text-red-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+								<path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+							</svg>
+							<span className="text-red-700 font-medium">{error}</span>
+						</div>
+					</div>
 				)}
 
-				<div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-					<div className="bg-white rounded-lg shadow p-4">
-						<h2 className="text-lg font-medium mb-3">Preview</h2>
-						<div className="border rounded-md p-2 flex items-center justify-center min-h-[240px]">
+				{/* Results Section */}
+				<div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+					{/* Preview */}
+					<div className="bg-white/70 backdrop-blur-sm rounded-3xl shadow-xl p-8 border border-green-100">
+						<h3 className="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+							<svg className="w-6 h-6 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+								<path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+							</svg>
+							Analysis Preview
+						</h3>
+						<div className="border-2 border-dashed border-green-200 rounded-2xl p-6 flex items-center justify-center min-h-[400px] bg-gradient-to-br from-green-50 to-emerald-50">
 							{previewUrl ? (
-								<canvas ref={canvasRef} className="max-w-full h-auto" />
+								<canvas ref={canvasRef} className="max-w-full h-auto rounded-xl shadow-lg" />
 							) : (
-								<p className="text-gray-500 text-sm">No image selected.</p>
+								<div className="text-center text-gray-500">
+									<svg className="w-16 h-16 mx-auto mb-4 text-green-300" fill="currentColor" viewBox="0 0 20 20">
+										<path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+									</svg>
+									<p className="text-lg">No image selected</p>
+									<p className="text-sm">Upload an image to see analysis</p>
+								</div>
 							)}
 						</div>
 					</div>
 
-					<div className="bg-white rounded-lg shadow p-4">
-						<h2 className="text-lg font-medium mb-3">Results</h2>
+					{/* Results */}
+					<div className="bg-white/70 backdrop-blur-sm rounded-3xl shadow-xl p-8 border border-green-100">
+						<h3 className="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+							<svg className="w-6 h-6 text-blue-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+								<path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
+							</svg>
+							Quality Analysis
+						</h3>
+						
 						{result ? (
-							<div>
-								<div className="mb-3 text-sm text-gray-700">
-									<span className="font-medium">Detections:</span> {result.result.detections.length}
+							<div className="space-y-6">
+								{/* Summary Stats */}
+								<div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-200">
+									<div className="grid grid-cols-2 gap-4">
+										<div className="text-center">
+											<div className="text-3xl font-bold text-blue-600">{result.result.detections.length}</div>
+											<div className="text-sm text-blue-700 font-medium">Total Seeds</div>
+										</div>
+										<div className="text-center">
+											<div className="text-3xl font-bold text-green-600">
+												{result.result.detections.filter(d => d.label === 'Healthy').length}
+											</div>
+											<div className="text-sm text-green-700 font-medium">Healthy</div>
+										</div>
+									</div>
 								</div>
-								<ul className="space-y-2">
+
+								{/* Detection List */}
+								<div className="space-y-3">
+									<h4 className="font-semibold text-gray-700 mb-3">Individual Analysis:</h4>
 									{result.result.detections.map((d, idx) => (
-										<li key={idx} className="text-sm flex items-center justify-between border rounded-md p-2">
-											<span className="text-gray-800">{d.label}</span>
-											<span className="text-gray-500">{(d.confidence * 100).toFixed(1)}%</span>
-										</li>
+										<div key={idx} className={`p-4 rounded-xl border-2 transition-all duration-300 hover:shadow-md ${
+											d.label === 'Healthy' 
+												? 'bg-green-50 border-green-200 hover:bg-green-100' 
+												: 'bg-red-50 border-red-200 hover:bg-red-100'
+										}`}>
+											<div className="flex items-center justify-between">
+												<div className="flex items-center space-x-3">
+													<div className={`w-4 h-4 rounded-full ${
+														d.label === 'Healthy' ? 'bg-green-500' : 'bg-red-500'
+													}`}></div>
+													<span className="font-semibold text-gray-800">{d.label}</span>
+												</div>
+												<div className="text-right">
+													<div className="text-lg font-bold text-gray-700">{(d.confidence * 100).toFixed(1)}%</div>
+													<div className="text-xs text-gray-500">confidence</div>
+												</div>
+											</div>
+										</div>
 									))}
-								</ul>
-								<div className="mt-4 flex gap-2">
+								</div>
+
+								{/* Action Buttons */}
+								<div className="flex space-x-4 pt-4">
 									<a
 										href={result.result.overlay_url}
 										target="_blank"
 										rel="noreferrer"
-										className="px-3 py-2 rounded-md bg-gray-100 text-gray-800 hover:bg-gray-200 text-sm"
+										className="flex-1 px-4 py-3 rounded-xl bg-gradient-to-r from-gray-500 to-gray-600 text-white font-semibold text-center hover:from-gray-600 hover:to-gray-700 transition-all duration-300 transform hover:scale-105"
 									>
-										Open Overlay
+										🔍 View Overlay
 									</a>
 									<button
 										onClick={onDownloadPdf}
-										className="px-3 py-2 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 text-sm"
+										className="flex-1 px-4 py-3 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 text-white font-semibold hover:from-green-600 hover:to-emerald-600 transition-all duration-300 transform hover:scale-105"
 									>
-										Download PDF
+										📄 Download Report
 									</button>
 								</div>
 							</div>
 						) : (
-							<p className="text-gray-500 text-sm">No results yet.</p>
+							<div className="text-center text-gray-500 py-12">
+								<svg className="w-16 h-16 mx-auto mb-4 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
+									<path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
+								</svg>
+								<p className="text-lg">No analysis yet</p>
+								<p className="text-sm">Upload an image to get started</p>
+							</div>
 						)}
 					</div>
 				</div>
 
-				<footer className="mt-10 text-xs text-gray-500">API: /analyze — styled with Tailwind classes</footer>
+				{/* Footer */}
+				<footer className="text-center mt-16 text-gray-500">
+					<p className="text-sm">🌱 Powered by AI • Built for Agriculture • Quality First</p>
+				</footer>
 			</div>
 		</div>
 	);
