@@ -9,7 +9,7 @@ try:
 except Exception:
 	YOLO = None  # type: ignore
 	_HAS_ULTRA = False
-
+#train the model
 
 def train(data_yaml: str, model: str = "yolov8n.pt", epochs: int = 20, imgsz: int = 640, device: str = "") -> None:
 	if not _HAS_ULTRA:
